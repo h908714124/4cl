@@ -1,0 +1,11 @@
+#!/bin/sh
+if [ ! -d ~/bin ]; then
+	mkdir ~/bin
+fi
+
+if [ ! -f ~/bin/lein ]; then
+	curl -o "$HOME/bin/lein" -O "https://raw.github.com/technomancy/leiningen/stable/bin/lein"
+	chmod +x "$HOME/bin/lein"
+fi
+
+
