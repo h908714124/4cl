@@ -9,4 +9,11 @@
            (java.util.concurrent CountDownLatch
                                  LinkedBlockingQueue)))
 
-(defn -main [& args] (println "Hello world."))
+(defn hotpo [^Integer arg] 
+  (if (even? arg) 
+    (/ arg 2) 
+    (+ 1 (* arg 3))))
+
+(defn -main [& args] (println 
+  (take 10 
+    (iterate hotpo 27))))
