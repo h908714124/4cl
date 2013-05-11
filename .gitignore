@@ -2,3 +2,5 @@
 /target
 /.lein-failures
 /log
+/etc/header
+/etc/pwd
