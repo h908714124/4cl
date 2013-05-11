@@ -6,11 +6,14 @@
             [slingshot.slingshot :refer [try+ throw+]]
             [clj-http.client :as client])
   (:import (clojure.lang ExceptionInfo)
+           (org.slf4j LoggerFactory)
            (java.util.concurrent CountDownLatch
                                  LinkedBlockingQueue)))
+
+(def flog (LoggerFactory/getLogger "log.to.file"))
 
 (defn pullp [url n]
   (client/get (format url n)))
 
 (defn -main [& args]
-  println (json/parse-string (:body (pullp (first args) 1))))
+  (.info flog (.toString (json/parse-string (:body (pullp (first args) 1))))))

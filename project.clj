@@ -10,7 +10,9 @@
                  [org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [slingshot "0.10.3"]]
+                 [slingshot "0.10.3"]
+                 [org.slf4j/slf4j-api "1.7.5"]
+                 [org.slf4j/slf4j-log4j12 "1.7.5"]]
   :plugins [[lein-bin "0.3.2"]]
   :main d.main
   :bin {:bootclasspath true})
