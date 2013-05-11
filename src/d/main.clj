@@ -8,7 +8,12 @@
            (java.util.concurrent CountDownLatch
                                  LinkedBlockingQueue)))
 
-(defn hotpo [^Integer arg] 
+(def opts
+  [["-s" "--start" "Start value"
+    :default 27
+    :parse-fn #(bigint %)]])
+
+(defn hotpo [arg] 
   (if (even? arg) 
     (/ arg 2) 
     (+ 1 (* arg 3))))
@@ -19,7 +24,15 @@
          (recur (rest s))
          nil))))
 
-(defn -main [& args] 
-  (do (print-until-1 (iterate hotpo (Integer/valueOf (first args))))
-      (println)))
+(defn parse-opts [args]
+  (try
+    (first (apply cli args opts))
+    (catch Exception e
+      (throw+ {:type ::badarg} (.getMessage e)))))
 
+(defn -main [& args]
+  (let [optmap (parse-opts args)]
+    (do 
+      (print-until-1 
+       (iterate hotpo (:start optmap)))
+      (println))))
