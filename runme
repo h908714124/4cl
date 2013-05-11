@@ -1,20 +1,30 @@
 #!/bin/sh
 
+function ask {
+    read -p "$1 [Y/n]" yn
+    case $yn in
+        [Yy]* ) break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+}
+
 function install_lein {
 
-	echo "Installing lein."
-
-	if [ ! -d ~/bin ]; then
-		mkdir ~/bin
+	if [ ! -d "$HOME/bin" ]; then
+	    ask "Create folder $HOME/bin?"
+	    mkdir "$HOME/bin"
 	fi
 
 	if [[ ":$PATH:" == *":$HOME/bin:"* ]]; then
-		PATH="$PATH:$HOME/bin"
+	    echo "Add $HOME/bin to PATH?"
+	    PATH="$PATH:$HOME/bin"
 	fi
 
-	if [ ! -f ~/bin/lein ]; then
-		curl -o "$HOME/bin/lein" -O "https://raw.github.com/technomancy/leiningen/stable/bin/lein"
-		chmod +x "$HOME/bin/lein"
+	if [ ! -f "$HOME/bin/lein" ]; then
+	    echo "Download lein to $HOME/bin?"
+	    curl -o "$HOME/bin/lein" -O "https://raw.github.com/technomancy/leiningen/stable/bin/lein"
+	    chmod +x "$HOME/bin/lein"
 	fi
 
 }
