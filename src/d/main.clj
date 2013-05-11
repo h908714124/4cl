@@ -14,6 +14,6 @@
     (+ 1 (* arg 3))))
 
 (defn -main [& args] (println 
-  (let [hotpo-seq (iterate hotpo 27)]
+  (let [hotpo-seq (iterate hotpo (Integer/valueOf (first args)))]
     (take 
      (-> (.indexOf hotpo-seq 1) inc) hotpo-seq))))

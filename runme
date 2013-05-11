@@ -1,15 +1,29 @@
 #!/bin/sh
-if [ ! -d ~/bin ]; then
-	mkdir ~/bin
-fi
 
-if [[ ":$PATH:" == *":$HOME/bin:"* ]]; then
-	PATH="$PATH:$HOME/bin"
-fi
+function install_lein {
 
-if [ ! -f ~/bin/lein ]; then
-	curl -o "$HOME/bin/lein" -O "https://raw.github.com/technomancy/leiningen/stable/bin/lein"
-	chmod +x "$HOME/bin/lein"
-fi
+	echo "Installing lein."
 
-lein run
+	if [ ! -d ~/bin ]; then
+		mkdir ~/bin
+	fi
+
+	if [[ ":$PATH:" == *":$HOME/bin:"* ]]; then
+		PATH="$PATH:$HOME/bin"
+	fi
+
+	if [ ! -f ~/bin/lein ]; then
+		curl -o "$HOME/bin/lein" -O "https://raw.github.com/technomancy/leiningen/stable/bin/lein"
+		chmod +x "$HOME/bin/lein"
+	fi
+
+}
+
+command -v lein || install_lein
+
+## Run program
+if [ "$1" = "" ]; then
+	lein run 27
+else
+	lein run "$1"
+fi
