@@ -5,8 +5,8 @@
   :license {:name "none"
             :url "http://no.ne"}
   :resource-paths ["etc" "resources"]
-  :dependencies [[cheshire "5.0.1"]
-                 [clj-http "0.6.3"]
+  :dependencies [[cheshire "5.1.1"]
+                 [clj-http "0.7.1"]
                  [org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.cli "0.2.2"]
                  [org.clojure/tools.logging "0.2.6"]
