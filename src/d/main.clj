@@ -13,7 +13,13 @@
     (/ arg 2) 
     (+ 1 (* arg 3))))
 
-(defn -main [& args] (println 
-  (let [hotpo-seq (iterate hotpo (Integer/valueOf (first args)))]
-    (take 
-     (-> (.indexOf hotpo-seq 1) inc) hotpo-seq))))
+(defn print-until-1 [some-seq] (loop [s some-seq]
+   (do (print (first s) " ")
+       (if (not= (first s) 1)
+         (recur (rest s))
+         nil))))
+
+(defn -main [& args] 
+  (do (print-until-1 (iterate hotpo (Integer/valueOf (first args))))
+      (println)))
+
