@@ -1,6 +1,5 @@
 (ns d.main
   (:gen-class)
-  ;; Need to require these because of the multimethod in s.stream.
   (:require [cheshire.core :as json]
             [clojure.tools.cli :refer [cli]]
             [clojure.tools.logging :as log]
@@ -15,5 +14,7 @@
     (+ 1 (* arg 3))))
 
 (defn -main [& args] (println 
-  (take 10 
-    (iterate hotpo 27))))
+  (let [hotpo-seq (iterate hotpo 27)]
+    (take 
+     (-> (.indexOf hotpo-seq 1)) 
+     (iterate hotpo 27)))))
