@@ -40,5 +40,26 @@
             (recur (inc i)))
           (format "[%s]" (.toString sb)))))))
 
+(defn convert-row [row]
+  (let [base 
+        {:_id (:id row)
+         :attrs (:attrs row)
+         :pid (:productId row)
+         :sid (:shopId row)
+         :price (:price row)
+         :retailer (:retailer row)
+         :category (:category row)
+         :location (format "%f,%f" (:lat row) (:lng row))
+         :address (:address row)
+         :shopname (:shopName row)
+         :agroup (:agroup row)
+         :options (:options row)}]
+    (if (contains? row :web)
+      (merge row 
+             {:link (:link (:web row))
+              :price (:price (:web row))
+              :shipping (:shipping (:web row))})
+      row)))
+
 (defn extract-rows [o]
-  (:result o))
+  (map convert-row (:result o)))

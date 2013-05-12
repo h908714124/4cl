@@ -4,7 +4,8 @@
             [d.util :as util]
             [clj-http.client :as client])
   (:import (org.slf4j LoggerFactory)
-           (java.util.concurrent Executors)))
+           (java.util.concurrent Executors)
+           (java.util Locale)))
 
 (def flog (LoggerFactory/getLogger "log.to.file"))
 (def log (LoggerFactory/getLogger "d.job"))
@@ -54,15 +55,20 @@
 
 (defn iterate-chunks [url] 
   (let [pool (Executors/newFixedThreadPool 4)]
-    (loop [chunk 0]
-      (let [range (chunk-range chunk)
-            tasks (chunk-writep url range)
-            result (map #(.get %) (.invokeAll pool tasks))]
-        (.info log (format "finished chunk: %d (pages: %s)" chunk (util/seq-str range)))
-        (if (> (apply + result) 0)
-               (recur (inc chunk))
-               nil)))))
+    (try
+      (loop [chunk 0]
+        (let [range (chunk-range chunk)
+              tasks (chunk-writep url range)
+              result (map #(.get %) (.invokeAll pool tasks))]
+          (.info log (format "finished chunk: %d (pages: %s)" chunk (util/seq-str range)))
+          (if (> (apply + result) 0)
+            (recur (inc chunk))
+            nil)))
+      (finally (.shutdown pool)))))
 
 (defn -main [& args]
-  (iterate-chunks (first args)))
+  (do
+    (Locale/setDefault (Locale/US))
+    (client/with-connection-pool {:threads 10}
+      (iterate-chunks (first args)))))
 
