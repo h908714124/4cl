@@ -7,8 +7,11 @@
            (java.util.concurrent Executors)))
 
 (def flog (LoggerFactory/getLogger "log.to.file"))
+(def log (LoggerFactory/getLogger "d.job"))
 
 (defn flogg [s] (.info flog s))
+
+(def ppc 40)
 
 (def header (-> "etc/header" slurp .trim))
 
@@ -16,28 +19,36 @@
   (let [msg (.toString s)]
     (do
       (flogg msg)
-      msg)))
+      (if (> (count msg) 20) 1 0))))
 
 (defn pullp [url]
   (client/get url {:headers {header (gen-pwd)}}))
 
 (defn writep [url n]
   (fn [] 
-    (tee 
-     (json/parse-string 
-      (:body 
-       (pullp 
-        (format url n)))))))
+    (let [endpoint (format url n)]
+      (.info log endpoint)
+      (tee 
+       (json/parse-string 
+        (:body 
+         (pullp endpoint)))))))
 
-(defn iterate-pages [url] 
-(let [pool (Executors/newFixedThreadPool 4)]
-  (loop [p 0]
-    (let [task (writep url p) 
-          result (task)]
-      (if (> (count result) 20)
-        (recur (inc p))
-        nil)))))
+(defn chunk-writep [url chunk]
+  (map 
+   #(writep url %) 
+   (range 
+    (* chunk ppc) 
+    (* (inc chunk) ppc))))
+
+(defn iterate-chunks [url] 
+  (let [pool (Executors/newFixedThreadPool 4)]
+    (loop [chunk 0]
+      (let [tasks (chunk-writep url chunk)
+            result (map #(.get %) (.invokeAll pool tasks))]
+        (if (> (apply + result) 0)
+               (recur (inc chunk))
+               nil)))))
 
 (defn -main [& args]
-   (iterate-pages (first args)))
+  (iterate-chunks (first args)))
 
