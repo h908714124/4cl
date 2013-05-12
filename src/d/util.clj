@@ -29,3 +29,13 @@
 
 (defn gen-pwd []
   (_gen-pwd (Long/toString (System/currentTimeMillis))))
+
+(defn seq-str [seq]
+  (let [interposed (interpose " " seq)]
+    (let [sb (StringBuilder.)]
+      (loop [i 0]
+        (if (< i (count interposed))
+          (do
+            (.append sb (nth interposed i))
+            (recur (inc i)))
+          (format "[%s]" (.toString sb)))))))
