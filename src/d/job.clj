@@ -51,7 +51,7 @@
               tasks (map #(writep %) range)
               result (map #(.get %) (.invokeAll pool tasks))
               chunk-str (util/seq-str range)
-              msg (format "finished chunk: %d (pages: %s)" chunk chunk-str)]
+              msg (str "pages done: " chunk-str)]
           (.info log msg)
           (if (> (apply + result) 0)
             (recur (inc chunk))

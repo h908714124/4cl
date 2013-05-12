@@ -2,5 +2,8 @@
  :worker-pool-size 4
  :pages-per-chunk 40
  :socket-timeout-seconds 1800
- :conn-timeout-seconds 1800}
+ :conn-timeout-seconds 1800
+ :pwd "dontpushme"
+ :header "my-custom-http-header"
+ :page-url "http://getdata.net/biglist.json?rpp=100&page=%d"}
  

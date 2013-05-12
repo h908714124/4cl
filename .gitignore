@@ -3,6 +3,5 @@
 /target
 /.lein-failures
 /log
-/etc/header
-/etc/pwd
 /etc/props.clj
+/etc/v

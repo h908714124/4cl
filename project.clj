@@ -1,5 +1,14 @@
 (defproject net.4cl/d
-  (-> "etc/version.txt" slurp .trim)
+  (.trim 
+   (let [f (java.io.File. "etc/v")]
+     (if (and (.exists f) (.isFile f))
+       (slurp f)
+       (let [ts-version (str "unspecified-" (System/currentTimeMillis))]
+         (println (str 
+                   "Version file etc/v not found. "
+                   "Using timestamped version: " 
+                   ts-version))
+         ts-version))))
   :description "curl -v https://sys.4chan.org/image/error/banned/250/rid.php"
   :url "4chan.org"
   :license {:name "none"
