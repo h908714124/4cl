@@ -3,7 +3,8 @@
   (:require [cheshire.core :as json]
             [d.util :refer :all]
             [clj-http.client :as client])
-  (:import (org.slf4j LoggerFactory)))
+  (:import (org.slf4j LoggerFactory)
+           (java.util.concurrent Executors)))
 
 (def flog (LoggerFactory/getLogger "log.to.file"))
 
@@ -21,18 +22,21 @@
   (client/get url {:headers {header (gen-pwd)}}))
 
 (defn writep [url n]
-  (tee 
-   (json/parse-string 
-    (:body 
-     (pullp 
-      (format url n))))))
+  (fn [] 
+    (tee 
+     (json/parse-string 
+      (:body 
+       (pullp 
+        (format url n)))))))
 
 (defn iterate-pages [url] 
- (loop [p 0]
-   (let [result (writep url p)]
-     (if (> (count result) 20)
-       (recur (inc p))
-       nil))))
+(let [pool (Executors/newFixedThreadPool 4)]
+  (loop [p 0]
+    (let [task (writep url p) 
+          result (task)]
+      (if (> (count result) 20)
+        (recur (inc p))
+        nil)))))
 
 (defn -main [& args]
    (iterate-pages (first args)))
