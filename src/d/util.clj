@@ -39,3 +39,6 @@
             (.append sb (nth interposed i))
             (recur (inc i)))
           (format "[%s]" (.toString sb)))))))
+
+(defn extract-rows [o]
+  (:result o))

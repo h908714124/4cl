@@ -1,7 +1,7 @@
 (ns d.job
   (:gen-class)
   (:require [cheshire.core :as json]
-            [d.util :refer :all]
+            [d.util :as util]
             [clj-http.client :as client])
   (:import (org.slf4j LoggerFactory)
            (java.util.concurrent Executors)))
@@ -9,9 +9,17 @@
 (def flog (LoggerFactory/getLogger "log.to.file"))
 (def log (LoggerFactory/getLogger "d.job"))
 
-(defn flogg [s] (.info flog s))
-
 (def ppc 10)
+
+(defn dump-to-file [s] 
+  (let [rows (util/extract-rows s)]
+    (if (= 0 (count rows))
+      0
+      (loop [row 0]
+        (.info flog (json/generate-string (nth rows row)))
+        (if (< row (dec (count rows)))
+          (recur (inc row))
+          (count rows))))))
 
 (def header (-> "etc/header" slurp .trim))
 
@@ -21,14 +29,8 @@
     (.warn log msg)
     again))
 
-(defn tee [s]
-  (let [msg (.toString s)]
-    (do
-      (flogg msg)
-      (if (> (count msg) 20) 1 0))))
-
 (defn pullp [url]
-  (client/get url {:headers {header (gen-pwd)}
+  (client/get url {:headers {header (util/gen-pwd)}
                    :retry-handler retry-handler
                    :socket-timeout (* 1800 1000)
                    :conn-timeout (* 1800 1000)}))
@@ -36,10 +38,10 @@
 (defn writep [url n]
   (fn [] 
     (let [endpoint (format url n)]
-      (tee 
+      (dump-to-file 
        (json/parse-string 
         (:body 
-         (pullp endpoint)))))))
+         (pullp endpoint)) true)))))
 
 (defn chunk-range [chunk]
   (range
@@ -56,7 +58,7 @@
       (let [range (chunk-range chunk)
             tasks (chunk-writep url range)
             result (map #(.get %) (.invokeAll pool tasks))]
-        (.info log (format "finished chunk: %d (pages: %s)" chunk (seq-str range)))
+        (.info log (format "finished chunk: %d (pages: %s)" chunk (util/seq-str range)))
         (if (> (apply + result) 0)
                (recur (inc chunk))
                nil)))))
