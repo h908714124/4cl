@@ -2,6 +2,7 @@
   (:gen-class)
   (:require [cheshire.core :as json]
             [d.util :as util]
+            [clojure.edn :as edn]
             [clj-http.client :as client])
   (:import (org.slf4j LoggerFactory)
            (java.util.concurrent Executors)
@@ -10,9 +11,12 @@
 (def flog (LoggerFactory/getLogger "log.to.file"))
 (def log (LoggerFactory/getLogger "d.job"))
 
-(def ppc 10)
+(def worker-pool-size (Integer/valueOf (:worker-pool-size util/props)))
+(def http-pool-size (Integer/valueOf (:http-pool-size util/props)))
+(def socket-timeout (* 1000 (Integer/valueOf (:socket-timeout-seconds util/props))))
+(def conn-timeout (* 1000 (Integer/valueOf (:conn-timeout-seconds util/props))))
 
-(defn dump-to-file [s] 
+(defn- dump-to-file [s] 
   (let [rows (util/extract-rows s)]
     (if (= 0 (count rows))
       0
@@ -24,40 +28,35 @@
 
 (def header (-> "etc/header" slurp .trim))
 
-(defn retry-handler [ex count context]
+(defn- retry-handler [ex count context]
   (let [again (< count 10)
         msg (format "%s count=%d again?%b" ex count again)]
     (.warn log msg)
     again))
 
-(defn pullp [url]
+(defn- pullp [url]
   (client/get url {:headers {header (util/gen-pwd)}
                    :retry-handler retry-handler
-                   :socket-timeout (* 1800 1000)
-                   :conn-timeout (* 1800 1000)}))
+                   :socket-timeout socket-timeout
+                   :conn-timeout conn-timeout}))
 
-(defn writep [url n]
-  (fn [] 
-    (let [endpoint (format url n)]
-      (dump-to-file 
-       (json/parse-string 
-        (:body 
-         (pullp endpoint)) true)))))
+(defn- writep [url n]
+  #(let [endpoint (format url n)]
+     (dump-to-file 
+      (json/parse-string 
+       (:body 
+        (pullp endpoint)) true))))
 
-(defn chunk-range [chunk]
-  (range
-   (* chunk ppc)
-   (* (inc chunk) ppc)))
 
-(defn chunk-writep [url range]
+(defn- chunk-writep [url range]
   (map 
    #(writep url %) range))
 
-(defn iterate-chunks [url] 
-  (let [pool (Executors/newFixedThreadPool 4)]
+(defn- iterate-chunks [url] 
+  (let [pool (Executors/newFixedThreadPool worker-pool-size)]
     (try
       (loop [chunk 0]
-        (let [range (chunk-range chunk)
+        (let [range (util/chunk-range chunk)
               tasks (chunk-writep url range)
               result (map #(.get %) (.invokeAll pool tasks))]
           (.info log (format "finished chunk: %d (pages: %s)" chunk (util/seq-str range)))
@@ -69,6 +68,6 @@
 (defn -main [& args]
   (do
     (Locale/setDefault (Locale/US))
-    (client/with-connection-pool {:threads 10}
+    (client/with-connection-pool {:threads http-pool-size}
       (iterate-chunks (first args)))))
 

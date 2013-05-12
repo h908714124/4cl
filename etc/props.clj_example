@@ -1,0 +1,6 @@
+{:http-pool-size 10
+ :worker-pool-size 4
+ :pages-per-chunk 40
+ :socket-timeout-seconds 1800
+ :conn-timeout-seconds 1800}
+ 

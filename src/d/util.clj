@@ -1,8 +1,10 @@
 (ns d.util
   (:gen-class)
   (:require [cheshire.core :as json]
-            [clj-http.client :as client])
+            [clj-http.client :as client]
+            [clojure.edn :as edn])
   (:import (org.apache.commons.codec.digest DigestUtils)
+           (org.slf4j LoggerFactory)
            (java.security MessageDigest)))
 
 (def pwd (-> "etc/pwd" slurp .trim))
@@ -40,7 +42,18 @@
             (recur (inc i)))
           (format "[%s]" (.toString sb)))))))
 
-(defn convert-row [row]
+(def props (edn/read-string (slurp "etc/props.clj")))
+
+(.info (LoggerFactory/getLogger "d.util") (str props))
+
+(def ppc (Integer/valueOf (:pages-per-chunk props)))
+
+(defn chunk-range [chunk]
+  (range
+   (* chunk ppc)
+   (* (inc chunk) ppc)))
+
+(defn- convert-row [row]
   (let [base 
         {:_id (:id row)
          :attrs (:attrs row)
