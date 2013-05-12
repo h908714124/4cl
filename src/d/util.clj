@@ -7,23 +7,36 @@
            (org.slf4j LoggerFactory)
            (java.security MessageDigest)))
 
-(def pwd (-> "etc/pwd" slurp .trim))
+(def props-file "etc/props.clj")
+(def props (edn/read-string (slurp props-file)))
 
-(defn- _md5 [digest]
-  (let [hexString (StringBuilder.)
-        myRange (range (count digest))]
+(defn- log-info [msg] (.info (LoggerFactory/getLogger "d.util") msg))
+
+(log-info (str props-file ": " props))
+
+(def ppc (Integer/valueOf (:pages-per-chunk props)))
+(def pwd (:pwd props))
+
+(defn- md5Hex [#^bytes bytes]
+  (str "Formats a byte array as a string of lowercase hexadecimal "
+       "characters. Unlike DigestUtil.md5Hex, this will format each "
+       "byte as 2 lowercase hex digits. DigestUtils, as well "
+       "as many other tools, may omit a leading zero if the byte "
+       "value is lower than 16.")
+  (let [sb (StringBuilder.)
+        myRange (range (count bytes))]
     (loop [i 0]
       (if (< i (count myRange))
-        (let [h (Integer/toHexString (bit-and 255 (nth digest i)))]
-          (if (< (nth digest i) 16)
-            (.append (.append hexString "0") h)
-            (.append hexString h))
+        (let [h (Integer/toHexString (bit-and 255 (nth bytes i)))]
+          (if (< (nth bytes i) 16)
+            (.append (.append sb "0") h)
+            (.append sb h))
           (recur (inc i)))
-        (.toString hexString)))))
+        (.toString sb)))))
 
 (defn md5 [s]
   (let [md (MessageDigest/getInstance "MD5")]
-    (_md5 (.digest md (.getBytes s)))))
+    (md5Hex (.digest md (.getBytes s)))))
     
 (defn- _gen-pwd [curmillis]
   (let [hash (md5 (str pwd "?" curmillis))]
@@ -42,11 +55,7 @@
             (recur (inc i)))
           (format "[%s]" (.toString sb)))))))
 
-(def props (edn/read-string (slurp "etc/props.clj")))
 
-(.info (LoggerFactory/getLogger "d.util") (str props))
-
-(def ppc (Integer/valueOf (:pages-per-chunk props)))
 
 (defn chunk-range [chunk]
   (range
@@ -68,11 +77,11 @@
          :agroup (:agroup row)
          :options (:options row)}]
     (if (contains? row :web)
-      (merge row 
+      (merge base
              {:link (:link (:web row))
               :price (:price (:web row))
               :shipping (:shipping (:web row))})
-      row)))
+      base)))
 
 (defn extract-rows [o]
   (map convert-row (:result o)))

@@ -11,10 +11,14 @@
 (def flog (LoggerFactory/getLogger "log.to.file"))
 (def log (LoggerFactory/getLogger "d.job"))
 
-(def worker-pool-size (Integer/valueOf (:worker-pool-size util/props)))
-(def http-pool-size (Integer/valueOf (:http-pool-size util/props)))
-(def socket-timeout (* 1000 (Integer/valueOf (:socket-timeout-seconds util/props))))
-(def conn-timeout (* 1000 (Integer/valueOf (:conn-timeout-seconds util/props))))
+(defn- int-prop [key] (Integer/valueOf (key util/props)))
+
+(def page-url (:page-url util/props))
+(def worker-pool-size (int-prop :worker-pool-size))
+(def http-pool-size ( int-prop :http-pool-size))
+(def socket-timeout (* 1000 (int-prop :socket-timeout-seconds)))
+(def conn-timeout (* 1000 (int-prop :conn-timeout-seconds)))
+(def header (:header util/props))
 
 (defn- dump-to-file [s] 
   (let [rows (util/extract-rows s)]
@@ -26,40 +30,29 @@
           (recur (inc row))
           (count rows))))))
 
-(def header (-> "etc/header" slurp .trim))
-
 (defn- retry-handler [ex count context]
   (let [again (< count 10)
         msg (format "%s count=%d again?%b" ex count again)]
     (.warn log msg)
     again))
 
-(defn- pullp [url]
-  (client/get url {:headers {header (util/gen-pwd)}
-                   :retry-handler retry-handler
-                   :socket-timeout socket-timeout
-                   :conn-timeout conn-timeout}))
-
-(defn- writep [url n]
-  #(let [endpoint (format url n)]
+(defn- writep [n]
+  #(let [endpoint (format page-url n)]
      (dump-to-file 
       (json/parse-string 
        (:body 
-        (pullp endpoint)) true))))
+        (client/get endpoint {:headers {header (util/gen-pwd)}})) true))))
 
-
-(defn- chunk-writep [url range]
-  (map 
-   #(writep url %) range))
-
-(defn- iterate-chunks [url] 
+(defn- iterate-chunks [] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
     (try
       (loop [chunk 0]
         (let [range (util/chunk-range chunk)
-              tasks (chunk-writep url range)
-              result (map #(.get %) (.invokeAll pool tasks))]
-          (.info log (format "finished chunk: %d (pages: %s)" chunk (util/seq-str range)))
+              tasks (map #(writep %) range)
+              result (map #(.get %) (.invokeAll pool tasks))
+              chunk-str (util/seq-str range)
+              msg (format "finished chunk: %d (pages: %s)" chunk chunk-str)]
+          (.info log msg)
           (if (> (apply + result) 0)
             (recur (inc chunk))
             nil)))
@@ -68,6 +61,9 @@
 (defn -main [& args]
   (do
     (Locale/setDefault (Locale/US))
-    (client/with-connection-pool {:threads http-pool-size}
-      (iterate-chunks (first args)))))
+    (client/with-connection-pool {:threads http-pool-size
+                                  :socket-timeout socket-timeout
+                                  :conn-timeout conn-timeout
+                                  :retry-handler retry-handler}
+      (iterate-chunks))))
 
