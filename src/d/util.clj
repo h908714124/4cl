@@ -74,8 +74,8 @@
                :agroup (:agroup row)
                :options (:options row)}
           web (if (contains? row :web) 
-                {:link (:link (:web row))
-                 :price (:price (:web row))
+                {:weblink (:link (:web row))
+                 :webprice (:price (:web row))
                  :shipping (:shipping (:web row))}
                 {})]
       (merge loc web))
