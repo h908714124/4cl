@@ -9,6 +9,8 @@
            (java.util Locale)))
 
 (def flog (LoggerFactory/getLogger "log.to.file"))
+(defn- file-out [str] (.info flog str))
+
 (def log (LoggerFactory/getLogger "d.job"))
 
 (defn- int-prop [key] (Integer/valueOf (key util/props)))
@@ -20,15 +22,15 @@
 (def conn-timeout (* 1000 (int-prop :conn-timeout-seconds)))
 (def header (:header util/props))
 
-(defn- dump-to-file [s] 
-  (let [rows (util/extract-rows s)]
-    (if (= 0 (count rows))
-      0
-      (loop [row 0]
-        (.info flog (json/generate-string (nth rows row)))
-        (if (< row (dec (count rows)))
-          (recur (inc row))
-          (count rows))))))
+(defn- dump-to-file [response]
+  (let[o (json/parse-string (:body response) true) 
+       rows (util/convert-json o)]
+    (loop [rr rows]
+      (if (not (empty? rr))
+        (do
+          (file-out (json/generate-string (first rr)))
+          (recur (rest rr)))))
+    (count rows)))
 
 (defn- retry-handler [ex count context]
   (let [again (< count 10)
@@ -36,26 +38,24 @@
     (.warn log msg)
     again))
 
-(defn- writep [n]
+(defn- do-page [n]
   #(let [endpoint (format page-url n)]
-     (dump-to-file 
-      (json/parse-string 
-       (:body 
-        (client/get endpoint {:headers {header (util/gen-pwd)}})) true))))
+    (dump-to-file
+     (client/get endpoint 
+                 {:headers {header (util/gen-pwd)}}))))
 
 (defn- iterate-chunks [] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
     (try
-      (loop [chunk 0]
-        (let [range (util/chunk-range chunk)
-              tasks (map #(writep %) range)
+      (loop [rr (range)]
+        (let [page-range (util/chunk-range (first rr))
+              tasks (map #(do-page %) page-range)
               result (map #(.get %) (.invokeAll pool tasks))
-              chunk-str (util/seq-str range)
+              chunk-str (util/seq-str page-range)
               msg (str "pages done: " chunk-str)]
           (.info log msg)
           (if (> (apply + result) 0)
-            (recur (inc chunk))
-            nil)))
+            (recur (rest rr)))))
       (finally (.shutdown pool)))))
 
 (defn -main [& args]
