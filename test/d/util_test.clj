@@ -33,5 +33,20 @@
       (is 
        (= 101
           (apply + mapped))))))
-          
 
+(deftest must-throw
+  (let [deref-inc
+        (fn [a]
+          (inc (deref a)))]
+    (testing "must throw"
+      (is 
+       (thrown? NullPointerException
+                (deref-inc nil))))
+    (testing "catch-return"
+      (is
+       (= 1
+          (try
+            (deref-inc nil)
+            (catch NullPointerException e 
+              (println "caught " (.getMessage e)) 
+              1)))))))

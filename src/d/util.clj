@@ -11,8 +11,10 @@
 (def props (edn/read-string (slurp props-file)))
 
 (defn- log-info [msg] (.info (LoggerFactory/getLogger "d.util") msg))
-
-(log-info (str props-file ": " props))
+(defn prop [key]
+  (let [value (key props)]
+    (log-info (str "key: " key ", value: " value))
+    value))
 
 (def ppc (Integer/valueOf (:pages-per-chunk props)))
 (def pwd (:pwd props))
