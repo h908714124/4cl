@@ -14,7 +14,10 @@
 (defn- file-println [str] (.info flog str))
 
 (def logger (LoggerFactory/getLogger "d.job"))
-(defn- log [msg] (.info logger msg))
+(defn- log 
+  ([] (.info logger "logging with no args"))
+  ([msg] (.info logger msg))
+  ([f & msg] (.info logger (apply format f msg))))
 
 (defn- int-prop [key] (Integer/valueOf (util/prop key)))
 
@@ -47,7 +50,7 @@
         (client/get endpoint 
                     {:headers {header (util/gen-pwd)}}))
        (catch Exception e 
-         (str "caught exception: " (.getMessage e))
+         (log "caught exception: %s" (.getMessage e))
          0 ;better use a stop signal here
          ))))
 
@@ -61,7 +64,7 @@
               chunk-str (util/seq-str page-range)
               msg (str "pages done: " chunk-str)
               result-size (apply + result)]
-          (log msg ", result-size: " result-size)
+          (log "%s, result-size: %s" msg result-size)
           (if (not (zero? result-size)) ;stop signal
             (recur (rest rr)))))
       (finally (.shutdown pool)))))
@@ -69,11 +72,10 @@
 (defn -main [& args]
   (do
     (Locale/setDefault (Locale/US))
-    (log (str "Max memory: " 
-              (float (/ 
-                      (.maxMemory (Runtime/getRuntime)) 
-                      (* 1024 1024)))
-              " MiB"))
+    (log "Max memory: %f MiB" 
+         (float (/ 
+                 (.maxMemory (Runtime/getRuntime)) 
+                 (* 1024 1024))))
     (client/with-connection-pool {:threads http-pool-size
                                   :socket-timeout socket-timeout
                                   :conn-timeout conn-timeout
