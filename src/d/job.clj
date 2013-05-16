@@ -43,24 +43,26 @@
     (log msg)
     again))
 
-(defn get-page [endpoint]
+(defn get-page [endpoint cs]
   (try
     (client/get endpoint 
                 {:headers {header (util/gen-pwd)}
-                 :retry-handler retry-handler})
+                 :retry-handler retry-handler
+                 :cookie-store cs})
     (catch Exception e 
       (log "ex: %s" (.getMessage e))
       -1 ;exception signal
       )))
-  
+
 (defn- do-page [n]
-  #(let [endpoint (format page-url n)]
+  #(let [cs (clj-http.cookies/cookie-store)
+         endpoint (format page-url n)]
      (loop [count 0]
-       (let [result (get-page endpoint)]
+       (let [result (get-page endpoint cs)]
          (if (and (= -1 result) (< count retries))
            (recur (inc count))
            (dump-to-file result))))))
-     
+
 
 (defn- iterate-chunks [] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
