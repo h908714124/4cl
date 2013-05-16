@@ -23,6 +23,7 @@
                  [commons-codec/commons-codec "1.7"]
                  [org.slf4j/slf4j-api "1.7.5"]
                  [org.slf4j/slf4j-log4j12 "1.7.5"]]
+  :source-paths ["src"]
   :plugins [[lein-bin "0.3.2"]]
   :main d.job
   :jvm-opts ["-Xms256m" "-Xmx2048m"]

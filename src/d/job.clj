@@ -43,16 +43,24 @@
     (log msg)
     again))
 
+(defn get-page [endpoint]
+  (try
+    (client/get endpoint 
+                {:headers {header (util/gen-pwd)}
+                 :retry-handler retry-handler})
+    (catch Exception e 
+      (log "ex: %s" (.getMessage e))
+      -1 ;exception signal
+      )))
+  
 (defn- do-page [n]
   #(let [endpoint (format page-url n)]
-     (try
-       (dump-to-file
-        (client/get endpoint 
-                    {:headers {header (util/gen-pwd)}}))
-       (catch Exception e 
-         (log "caught exception: %s" (.getMessage e))
-         0 ;better use a stop signal here
-         ))))
+     (loop [count 0]
+       (let [result (get-page endpoint)]
+         (if (and (= -1 result) (< count retries))
+           (recur (inc count))
+           (dump-to-file result))))))
+     
 
 (defn- iterate-chunks [] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
@@ -78,8 +86,7 @@
                  (* 1024 1024))))
     (client/with-connection-pool {:threads http-pool-size
                                   :socket-timeout socket-timeout
-                                  :conn-timeout conn-timeout
-                                  :retry-handler retry-handler}
+                                  :conn-timeout conn-timeout}
       (iterate-chunks))
     (log "finish")))
 
