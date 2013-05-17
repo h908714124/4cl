@@ -16,7 +16,6 @@
     (log-info (str "key: " key ", value: " value))
     value))
 
-(def ppc (Integer/valueOf (:pages-per-chunk props)))
 (def pwd (:pwd props))
 
 (defn- md5Hex [bytes]
@@ -46,6 +45,7 @@
   (_gen-pwd (Long/toString (System/currentTimeMillis))))
 
 (defn seq-str [seq]
+  "format a finite seq for printing"
   (let [interposed (interpose " " seq)]
     (let [sb (StringBuilder.)]
       (loop [i 0]
@@ -55,28 +55,23 @@
             (recur (inc i)))
           (format "[%s]" (.toString sb)))))))
 
-(defn page-range [chunk]
-  (range
-   (* chunk ppc)
-   (* (inc chunk) ppc)))
-
-(defn convert-json [row]
-  (let [local {:_id (:id row)
-               :attrs (:attrs row)
-               :pid (:productId row)
-               :sid (:shopId row)
-               :price (:price row)
-               :retailer (:retailer row)
-               :category (:category row)
-               :location (format "%f,%f" (:lat row) (:lng row))
-               :address (:address row)
-               :shopname (:shopName row)
-               :agroup (:agroup row)
-               :options (:options row)}
-        web (if (contains? row :web) 
-              {:weblink (:link (:web row))
-               :webprice (:price (:web row))
-               :shipping (:shipping (:web row))})]
+(defn convert-doc [d]
+  (let [local {:_id (:id d)
+               :attrs (:attrs d)
+               :pid (:productId d)
+               :sid (:shopId d)
+               :price (:price d)
+               :retailer (:retailer d)
+               :category (:category d)
+               :location (format "%f,%f" (:lat d) (:lng d))
+               :address (:address d)
+               :shopname (:shopName d)
+               :agroup (:agroup d)
+               :options (:options d)}
+        web (if (contains? d :web) 
+              {:weblink (:link (:web d))
+               :webprice (:price (:web d))
+               :shipping (:shipping (:web d))})]
     (merge local web)))
 
 

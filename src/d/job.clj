@@ -24,70 +24,75 @@
 (defn- int-prop [key] (Integer/valueOf (util/prop key)))
 
 (def page-url (util/prop :page-url))
+(def count-endpoint (util/prop :count-endpoint))
+(def page-size (int-prop :page-size))
 (def worker-pool-size (int-prop :worker-pool-size))
 (def http-pool-size ( int-prop :http-pool-size))
 (def socket-timeout (* 1000 (int-prop :socket-timeout-seconds)))
 (def conn-timeout (* 1000 (int-prop :conn-timeout-seconds)))
 (def header (util/prop :header))
-(def retries (util/prop :retries))
+(def max-retries (util/prop :retries))
 
-(defn- dump-to-file [response]
+(defn- dump-to-file [response-body]
   "returns number of docs written"
-  (let[root (json/parse-string (:body response) true) 
-       docs (map #(util/convert-json %) (:result root))
-       sdocs (map #(json/generate-string %) docs)]
-    (file-write-line (join "\n" sdocs))
+  (let[parsed-json (json/parse-string response-body true) 
+       docs (map #(util/convert-doc %) (:result parsed-json))
+       docs-str (map #(json/generate-string %) docs)]
+    (file-write-line (join "\n" docs-str))
     (count docs)))
 
-(defn- retry-handler [ex count context]
-  (let [again (< count retries)
-        msg (format "%s count=%d again?%b" ex count again)]
-    (log msg)
-    again))
+(defn- page-task [endpoint]
+  "Returns number of docs written, or nil if no success."
+  #(let [session (clj-http.cookies/cookie-store)]
+     (log "starting download: %s" endpoint)
+     (loop [counter (range max-retries)]
+       (let [response (client/get endpoint 
+                                  {:headers {header (util/gen-pwd)}
+                                   :cookie-store session
+                                   :throw-exceptions false})
+             status (:status response)]
+         (if (= 200 status)
+           (let [dumped (dump-to-file (:body response))]
+             (log "finished download: %s (%s docs)" endpoint dumped)
+             dumped) ;return number of docs written
+           (if (and (= 408 status) counter) ;retry signal
+             (recur (rest counter)) ;try again
+             (log "%s: %d" endpoint status))))))) ;give up
 
-(defn- get-page [endpoint cs]
-  (try
-    (client/get endpoint 
-                {:headers {header (util/gen-pwd)}
-                 :retry-handler retry-handler
-                 :cookie-store cs})
-    (catch Exception e 
-      (log "ex: %s" (.getMessage e)))))
-
-(defn- page-task [p]
-  #(let [session (clj-http.cookies/cookie-store)
-         endpoint (format page-url p)]
-     (loop [counter (range retries)]
-       (let [page-data (get-page endpoint session)]
-         (if (not (nil? page-data))
-           (dump-to-file page-data)
-           (if (counter)
-             (recur (rest counter))
-             0))))))
-
-(defn- iterate-chunks [] 
+(defn- download [num-pages] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
-    (loop [chunk (range)]
-      (let [pages (util/page-range (first chunk))
-            tasks (map #(page-task %) pages)
-            results (map #(.get %) (.invokeAll pool tasks))]
-        (log "chunk: %s docs: %s" 
-             (first chunk) 
-             (apply + results))
-        (if (not (zero? (apply + results))) ;stop signal
-          (recur (rest chunk)))))
-    (.shutdown pool)))
+    (let [endpoints (map #(format page-url %) (range num-pages))
+          tasks (map #(page-task %) endpoints)]
+      (.invokeAll pool tasks)
+      (.shutdown pool))))
+
+(defn- count-docs []
+  (let [session (clj-http.cookies/cookie-store)]
+    (log "starting count query at %s" count-endpoint)
+    (loop []
+      (let [response (client/get count-endpoint 
+                                 {:cookie-store session
+                                  :throw-exceptions false})
+            status (:status response)]
+        (if (= 200 status)
+          (let [json (json/parse-string (:body response) true)]
+            (Long/valueOf (:info json)))
+          (if (= 408 status)
+            (do (log "retrying count query") (recur))
+            (do (log "error: %s" status) 0)))))))
 
 (defn -main [& args]
-  (do
+  (let [num-docs (count-docs)
+        num-pages (inc (quot num-docs page-size))]
     (Locale/setDefault (Locale/US))
-    (log "Max memory: %f MiB" 
-         (float (/ 
-                 (.maxMemory (Runtime/getRuntime)) 
-                 (* 1024 1024))))
+    (log "Max memory: %s MiB" 
+         (quot 
+          (.maxMemory (Runtime/getRuntime)) 
+          (* 1024 1024)))
+    (log "Docs: %s pages: %s"  num-docs num-pages)
     (client/with-connection-pool {:threads http-pool-size
                                   :socket-timeout socket-timeout
                                   :conn-timeout conn-timeout}
-      (iterate-chunks))
-    (log "finish")))
+      (download num-pages))
+    (log "Done")))
 

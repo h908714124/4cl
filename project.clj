@@ -10,7 +10,7 @@
                    ts-version))
          ts-version))))
   :description "curl -v https://sys.4chan.org/image/error/banned/250/rid.php"
-  :url "4chan.org"
+  :url "4chan.org"       
   :license {:name "none"
             :url "http://no.ne"}
   :resource-paths ["etc" "resources"]
@@ -22,8 +22,8 @@
                  [org.clojure/tools.logging "0.2.6"]
                  [slingshot "0.10.3"]
                  [commons-codec/commons-codec "1.7"]
-                 [org.slf4j/slf4j-api "1.7.5"]
-                 [org.slf4j/slf4j-log4j12 "1.7.5"]]
+                 [ch.qos.logback/logback-classic "1.0.11"]
+                 [org.codehaus.groovy/groovy-all "2.1.3"]]
   :source-paths ["src"]
   :plugins [[lein-bin "0.3.2"]]
   :main d.job
