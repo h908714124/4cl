@@ -11,7 +11,7 @@
            (org.apache.http NoHttpResponseException)))
 
 (def flog (LoggerFactory/getLogger "log.to.file"))
-(defn- file-println [str] (.info flog str))
+(defn- file-write-line [str] (.info flog str))
 
 (def logger (LoggerFactory/getLogger "d.job"))
 
@@ -32,11 +32,12 @@
 (def retries (util/prop :retries))
 
 (defn- dump-to-file [response]
-  (let[o (json/parse-string (:body response) true) 
-       rows (util/convert-json o)
-       string-rows (map #(json/generate-string %) rows)]
-    (file-println (join "\n" string-rows))
-    (count rows)))
+  "returns number of docs written"
+  (let[root (json/parse-string (:body response) true) 
+       docs (map #(util/convert-json %) (:result root))
+       sdocs (map #(json/generate-string %) docs)]
+    (file-write-line (join "\n" sdocs))
+    (count docs)))
 
 (defn- retry-handler [ex count context]
   (let [again (< count retries)
@@ -61,8 +62,9 @@
          (if (not (nil? page-data))
            (dump-to-file page-data)
            (if (counter)
-             (recur (rest counter))))))))
-  
+             (recur (rest counter))
+             0))))))
+
 (defn- iterate-chunks [] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
     (loop [chunk (range)]

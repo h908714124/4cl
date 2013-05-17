@@ -60,10 +60,8 @@
    (* chunk ppc)
    (* (inc chunk) ppc)))
 
-(defn convert-json [o]
-  (map 
-   #(let [row %
-          loc {:_id (:id row)
+(defn convert-json [row]
+  (let [local {:_id (:id row)
                :attrs (:attrs row)
                :pid (:productId row)
                :sid (:shopId row)
@@ -75,11 +73,10 @@
                :shopname (:shopName row)
                :agroup (:agroup row)
                :options (:options row)}
-          web (if (contains? row :web) 
-                {:weblink (:link (:web row))
-                 :webprice (:price (:web row))
-                 :shipping (:shipping (:web row))}
-                {})]
-      (merge loc web))
-   (:result o)))
+        web (if (contains? row :web) 
+              {:weblink (:link (:web row))
+               :webprice (:price (:web row))
+               :shipping (:shipping (:web row))})]
+    (merge local web)))
+
 
