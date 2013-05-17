@@ -14,7 +14,9 @@
 (defn- file-println [str] (.info flog str))
 
 (def logger (LoggerFactory/getLogger "d.job"))
+
 (defn- log 
+  "returns nil"
   ([] (.info logger "logging with no args"))
   ([msg] (.info logger msg))
   ([f & msg] (.info logger (apply format f msg))))
@@ -34,8 +36,7 @@
        rows (util/convert-json o)
        string-rows (map #(json/generate-string %) rows)]
     (file-println (join "\n" string-rows))
-    (count rows) ;zero is stop signal
-    ))
+    (count rows)))
 
 (defn- retry-handler [ex count context]
   (let [again (< count retries)
@@ -43,41 +44,37 @@
     (log msg)
     again))
 
-(defn get-page [endpoint cs]
+(defn- get-page [endpoint cs]
   (try
     (client/get endpoint 
                 {:headers {header (util/gen-pwd)}
                  :retry-handler retry-handler
                  :cookie-store cs})
     (catch Exception e 
-      (log "ex: %s" (.getMessage e))
-      -1 ;exception signal
-      )))
+      (log "ex: %s" (.getMessage e)))))
 
-(defn- do-page [n]
-  #(let [cs (clj-http.cookies/cookie-store)
-         endpoint (format page-url n)]
-     (loop [count 0]
-       (let [result (get-page endpoint cs)]
-         (if (and (= -1 result) (< count retries))
-           (recur (inc count))
-           (dump-to-file result))))))
-
-
+(defn- page-task [p]
+  #(let [session (clj-http.cookies/cookie-store)
+         endpoint (format page-url p)]
+     (loop [counter (range retries)]
+       (let [page-data (get-page endpoint session)]
+         (if (not (nil? page-data))
+           (dump-to-file page-data)
+           (if (counter)
+             (recur (rest counter))))))))
+  
 (defn- iterate-chunks [] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
-    (try
-      (loop [rr (range)] ;infinite range
-        (let [page-range (util/chunk-range (first rr))
-              tasks (map #(do-page %) page-range)
-              result (map #(.get %) (.invokeAll pool tasks))
-              chunk-str (util/seq-str page-range)
-              msg (str "pages done: " chunk-str)
-              result-size (apply + result)]
-          (log "%s, result-size: %s" msg result-size)
-          (if (not (zero? result-size)) ;stop signal
-            (recur (rest rr)))))
-      (finally (.shutdown pool)))))
+    (loop [chunk (range)]
+      (let [pages (util/page-range (first chunk))
+            tasks (map #(page-task %) pages)
+            results (map #(.get %) (.invokeAll pool tasks))]
+        (log "chunk: %s docs: %s" 
+             (first chunk) 
+             (apply + results))
+        (if (not (zero? (apply + results))) ;stop signal
+          (recur (rest chunk)))))
+    (.shutdown pool)))
 
 (defn -main [& args]
   (do

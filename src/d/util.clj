@@ -55,7 +55,7 @@
             (recur (inc i)))
           (format "[%s]" (.toString sb)))))))
 
-(defn chunk-range [chunk]
+(defn page-range [chunk]
   (range
    (* chunk ppc)
    (* (inc chunk) ppc)))

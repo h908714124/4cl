@@ -15,6 +15,7 @@
             :url "http://no.ne"}
   :resource-paths ["etc" "resources"]
   :dependencies [[cheshire "5.1.1"]
+                 [org.clojure/tools.nrepl "0.2.3"]
                  [clj-http "0.7.1"]
                  [org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.cli "0.2.2"]
