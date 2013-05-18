@@ -21,6 +21,12 @@
   ([msg] (.info logger msg))
   ([f & msg] (.info logger (apply format f msg))))
 
+(defn- debug 
+  "returns nil"
+  ([] (.debug logger "logging with no args"))
+  ([msg] (.debug logger msg))
+  ([f & msg] (.debug logger (apply format f msg))))
+
 (defn- int-prop [k] (let [i (util/prop k)] (if i (Integer/valueOf i))))
 
 (def num-docs (int-prop :num-docs))
@@ -56,7 +62,8 @@
            (let [dumped (dump-to-file (:body response))]
              (log "finished download: %s (%s docs)" endpoint))
            (if (and (= 408 status) counter) ;should retry?
-             (recur (rest counter)) ;try again
+             (do (debug "%s retrying %s" endpoint (first counter))
+                 (recur (rest counter))) ;try again
              (log "%s: %d" endpoint status))))))) ;give up
 
 (defn- download [num-pages] 

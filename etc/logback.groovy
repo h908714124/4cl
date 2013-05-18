@@ -29,6 +29,6 @@ appender("STREAM2ES_APPENDER", FileAppender) {
 }
 
 root(INFO, ["CONSOLE_APPENDER"])
-logger("d", INFO, [])
+logger("d", DEBUG, [])
 logger("log.to", INFO, [], false)
 logger("log.to.file", INFO, ["STREAM2ES_APPENDER"])
