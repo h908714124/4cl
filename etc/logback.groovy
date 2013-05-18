@@ -8,7 +8,7 @@ import static ch.qos.logback.classic.Level.INFO
 
 appender("CONSOLE_APPENDER", ConsoleAppender) {
     encoder(PatternLayoutEncoder) {
-        pattern = "%d{HH:mm:ss.SSS} %-5level %logger{24} - %msg %xEx%n"
+        pattern = "%d{HH:mm:ss:SSS} %-5level %msg %xEx%n"
     }
 }
 
@@ -16,7 +16,7 @@ def logfile() {
     if (System.getProperty("s2es") != null) {
         return System.getProperty("s2es");
     } else {
-        return "log/es-"+(new SimpleDateFormat("yyyyMMddhh").format(new Date())) +".txt";
+        return "log/es-"+(new SimpleDateFormat("yyyyMMddahh").format(new Date())) +".txt";
     }
 }
 
@@ -24,7 +24,7 @@ appender("STREAM2ES_APPENDER", FileAppender) {
     append = false
     file = logfile()
     encoder(PatternLayoutEncoder) {
-        pattern = "%msg%n"
+        pattern = "%msg"
     }
 }
 
