@@ -13,19 +13,6 @@
 
 (def file-out (LoggerFactory/getLogger "log.to.file"))
 (defn- write [str] (.info file-out str))
-(def logger (LoggerFactory/getLogger "d.job"))
-
-(defn- log 
-  "returns nil"
-  ([] (.info logger "logging with no args"))
-  ([msg] (.info logger msg))
-  ([f & msg] (.info logger (apply format f msg))))
-
-(defn- debug 
-  "returns nil"
-  ([] (.debug logger "logging with no args"))
-  ([msg] (.debug logger msg))
-  ([f & msg] (.debug logger (apply format f msg))))
 
 (defn- int-prop [k] (let [i (util/prop k)] (if i (Integer/valueOf i))))
 
