@@ -82,17 +82,17 @@
             (do (log "error: %s" status) 0)))))))
 
 (defn -main [& args]
-  (let [num-docs (count-docs)
-        num-pages (inc (quot num-docs page-size))]
-    (Locale/setDefault (Locale/US))
-    (log "Max memory: %s MiB" 
-         (quot 
-          (.maxMemory (Runtime/getRuntime)) 
-          (* 1024 1024)))
-    (log "Docs: %s pages: %s"  num-docs num-pages)
-    (client/with-connection-pool {:threads http-pool-size
-                                  :socket-timeout socket-timeout
-                                  :conn-timeout conn-timeout}
-      (download num-pages))
-    (log "Done")))
+  (Locale/setDefault (Locale/US))
+  (client/with-connection-pool {:threads http-pool-size
+                                :timeout socket-timeout
+                                :default-per-route http-pool-size}
+    (let [num-docs (count-docs)
+          num-pages (inc (quot num-docs page-size))]
+      (log "Max memory: %s MiB" 
+           (quot 
+            (.maxMemory (Runtime/getRuntime)) 
+            (* 1024 1024)))
+      (log "Docs: %s pages: %s"  num-docs num-pages)
+      (download num-pages)
+      (log "Done"))))
 
