@@ -4,7 +4,8 @@
             [d.util :as util]
             [clojure.edn :as edn]
             [clj-http.client :as client])
-  (:use [clojure.string :only (join)])
+  (:use [clojure.string :only (join)]
+        [clojure.tools.logging :only (infof errorf debugf)])
   (:import (org.slf4j LoggerFactory)
            (java.util.concurrent Executors)
            (java.util Locale)
