@@ -57,7 +57,10 @@
       (is (nil? (identity nil)))
       (is (zero? (identity+ nil))))))
 
-(defmacro id-macro [f] `(~f))
-(deftest id-macro-test
+(defmacro id-macro [f] f)
+(defmacro eval-macro [f] `(~f))
+(deftest macro-test
   (testing "will it work"
-    (is (= 1 (id-macro (fn [] 1))))))
+    (is (= 1 (eval-macro (fn [] 1))))
+    (let [result (id-macro (fn [] 1))]
+      (is (= 1 (eval (result)))))))
