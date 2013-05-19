@@ -65,7 +65,7 @@
 
 (defn- count-docs []
   (if num-docs
-    num-docs
+    num-docs ;override
     (let [session (clj-http.cookies/cookie-store)]
       (infof "Starting count query at: %s" count-endpoint)
       (loop [counter (range max-retries)]
@@ -81,7 +81,7 @@
                          (first counter)))
                 (if (and (= 408 status) (seq counter))
                   (recur (rest counter))
-                  (do (errorf "Error: %s" status) 0)))))))))
+                  (errorf "Error: %s" status)))))))))
 
 (defn- calculate-num-pages []
   (let [identity+ (fnil identity 0)
