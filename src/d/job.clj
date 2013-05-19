@@ -36,6 +36,12 @@
     (write (apply str (map #(str % "\n") doc-lines)))
     (count docs)))
 
+(defn- create-retry-handler [endpoint]
+  (fn [ex try-count http-context]
+    (let [retries (- max-retries try-count)] 
+      (errorf "%s: handled %s, retries: %s" endpoint ex retries)
+      (pos? retries))))
+
 (defn- create-page-task [endpoint]
   #(let [session (clj-http.cookies/cookie-store)]
      (infof "Starting download: %s" endpoint)
@@ -43,7 +49,8 @@
        (let [response (client/get endpoint 
                                   {:headers {header (util/gen-pwd)}
                                    :cookie-store session
-                                   :throw-exceptions false})
+                                   :throw-exceptions false
+                                   :retry-handler (create-retry-handler endpoint)})
              status (:status response)
              body (:body response)]
          (if (= 200 status)
@@ -72,17 +79,17 @@
       (loop [counter (range max-retries)]
         (let [response (client/get count-endpoint 
                                    {:cookie-store session
-                                    :throw-exceptions false})
+                                    :throw-exceptions false
+                                    :retry-handler (create-retry-handler count-endpoint)})
               status (:status response)]
           (if (= 200 status)
-            (let [json (json/parse-string (:body response) true)]
-              (Long/valueOf (:info json)))
-            (do (if (= 15 (mod (first counter) 16))
-                  (infof "Retrying count query: %s" 
-                         (first counter)))
-                (if (and (= 408 status) (seq counter))
-                  (recur (rest counter))
-                  (errorf "Error: %s" status)))))))))
+            (Long/valueOf (:info (json/parse-string (:body response) true)))
+            (if (and (= 408 status) (seq counter))
+              (do 
+                (if (= 15 (mod (first counter) 16))
+                  (infof "Retrying count: %s (%s)" status (first counter)))
+                (recur (rest counter)))
+              (errorf "Error: %s" status))))))))
 
 (defn- calculate-num-pages []
   (let [identity+ (fnil identity 0)
