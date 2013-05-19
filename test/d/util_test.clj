@@ -50,3 +50,9 @@
             (catch NullPointerException e 
               (println "caught " (.getMessage e)) 
               1)))))))
+
+(deftest id+
+  (testing "will it work"
+    (let [identity+ (fnil identity 0)]
+      (is (nil? (identity nil)))
+      (is (zero? (identity+ nil))))))

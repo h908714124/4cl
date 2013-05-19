@@ -84,10 +84,10 @@
                   (do (errorf "Error: %s" status) 0)))))))))
 
 (defn- calculate-num-pages []
-  (let [num-docs (count-docs)
-        dec+ (fnil dec 1)]
+  (let [identity+ (fnil identity 0)
+        num-docs (identity+ (count-docs))]
     (infof "Docs: %s" num-docs)
-    (inc (quot (dec+ num-docs) page-size))))
+    (inc (quot (dec num-docs) page-size))))
 
 (defn -main [& args]
   (Locale/setDefault (Locale/US))
