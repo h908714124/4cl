@@ -51,8 +51,13 @@
               (println "caught " (.getMessage e)) 
               1)))))))
 
-(deftest id+
+(deftest id+-test
   (testing "will it work"
     (let [identity+ (fnil identity 0)]
       (is (nil? (identity nil)))
       (is (zero? (identity+ nil))))))
+
+(defmacro id-macro [f] `(~f))
+(deftest id-macro-test
+  (testing "will it work"
+    (is (= 1 (id-macro (fn [] 1))))))
