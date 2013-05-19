@@ -19,7 +19,7 @@ appender("STREAM2ES_APPENDER", FileAppender) {
     if (System.getProperty("s2es") != null) {
         return System.getProperty("s2es");
     } else {
-        return "log/es-"+(new SimpleDateFormat("yyyyMMddahh").format(new Date())) +".txt";
+        return "log/es-"+(new SimpleDateFormat("yyyyMMaddhh").format(new Date())) +".txt";
     }
     }
     file = calculateFilename()
