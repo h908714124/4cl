@@ -45,14 +45,15 @@
                                   {:headers {header (util/gen-pwd)}
                                    :cookie-store session
                                    :throw-exceptions false})
-             status (:status response)]
+             status (:status response)
+             body (:body response)]
          (if (= 200 status)
-           (let [dumped (dump-to-file (:body response))]
+           (let [dumped (dump-to-file body)]
              (infof "Done: %s (%s docs)" endpoint))
            (if (and (= 408 status) counter) ;should retry?
              (do (debugf "Retrying %s [%s]" endpoint (first counter))
                  (recur (rest counter))) ;try again
-             (infof "%s: %d" endpoint status))))))) ;give up
+             (errorf "%s: %d, body: %s" endpoint status body))))))) ;give up
 
 (defn- download [num-pages] 
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
@@ -79,7 +80,7 @@
             (if (= 408 status)
               (do 
                 (debugf "Retrying count query: %s" 
-                     (first counter)) (recur counter))
+                     (first counter)) (recur (rest counter)))
               (do (errorf "Error: %s" status) 0))))))))
   
 (defn- calculate-num-pages []
