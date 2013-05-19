@@ -61,19 +61,21 @@
                  (recur (rest counter))) ;try again
              (errorf "%s: %d, body: %s" endpoint status body))))))) ;give up
 
-(defn- with-thread-pool [body]
+(defn- with-thread-pool* [body]
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
     (try
       (body pool)
       (finally (.shutdown pool)))))
 
+(defmacro with-thread-pool [pool body]
+  `(with-thread-pool* (fn [~pool] ~body)))
+
 (defn- download [num-pages]
-  (with-thread-pool
-    (fn [pool]
-      (let [page-numbers (range start-page (+ start-page num-pages))
-            endpoints (map #(format page-url %) page-numbers)
-            tasks (map #(create-download-task %) endpoints)]
-        (.invokeAll pool (reverse tasks))))))
+  (let [page-numbers (range start-page (+ start-page num-pages))
+        endpoints (map #(format page-url %) page-numbers)
+        tasks (map #(create-download-task %) endpoints)]
+    (with-thread-pool pool
+      (.invokeAll pool tasks))))
 
 (defn- count-docs []
   (if num-docs
