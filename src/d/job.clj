@@ -49,7 +49,7 @@
          (if (= 200 status)
            (let [dumped (dump-to-file body)]
              (infof "Done: %s (%s docs)" endpoint dumped))
-           (if (and (= 408 status) counter) ;should retry?
+           (if (and (= 408 status) (seq counter)) ;should retry?
              (do (debugf "Retrying %s [%s]" endpoint (first counter))
                  (recur (rest counter))) ;try again
              (errorf "%s: %d, body: %s" endpoint status body))))))) ;give up
@@ -79,7 +79,7 @@
             (do (if (= 15 (mod (first counter) 16))
                   (infof "Retrying count query: %s" 
                          (first counter)))
-                (if (and (= 408 status) counter)
+                (if (and (= 408 status) (seq counter))
                   (recur (rest counter))
                   (do (errorf "Error: %s" status) 0)))))))))
 
