@@ -9,7 +9,7 @@ import static ch.qos.logback.classic.Level.INFO
 
 appender("CONSOLE_APPENDER", ConsoleAppender) {
     encoder(PatternLayoutEncoder) {
-        pattern = "%d{HH:mm:ss:SSS} %-5level %msg %xEx%n"
+        pattern = "%d{HH:mm:ss SSS} %-5level %msg %xEx%n"
     }
 }
 
@@ -35,11 +35,12 @@ appender("TEE_APPENDER", FileAppender) {
   }
     file = "log/info.log"
     encoder(PatternLayoutEncoder) {
-        pattern = "%d{yyyy:MMM:dd-HH:mm:ss:SSS} %-5level %msg %xEx%n"
+        pattern = "%d{yyyy-MM-dd HH:mm:ss SSS} %-5level %msg %xEx%n"
     }
 }
 
 root(INFO, ["CONSOLE_APPENDER", "TEE_APPENDER"])
+logger("org.apache.http", WARN, [])
 logger("d", INFO, [])
 logger("log.to", INFO, [], false)
 logger("log.to.file", INFO, ["STREAM2ES_APPENDER"])

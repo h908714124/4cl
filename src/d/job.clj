@@ -5,7 +5,7 @@
             [clojure.edn :as edn]
             [clj-http.client :as client])
   (:use [clojure.string :only (join)]
-        [clojure.tools.logging :only (infof errorf debugf)])
+        [clojure.tools.logging :only (infof errorf warnf debugf)])
   (:import (org.slf4j LoggerFactory)
            (java.util.concurrent Executors)
            (java.util Locale)
@@ -39,10 +39,10 @@
 (defn- create-retry-handler [endpoint]
   (fn [ex try-count http-context]
     (let [retries (- max-retries try-count)] 
-      (errorf "%s: handled %s, retries: %s" endpoint ex retries)
+      (warnf "%s: handled %s, retries: %s" endpoint ex retries)
       (pos? retries))))
 
-(defn- create-page-task [endpoint]
+(defn- create-download-task [endpoint]
   #(let [session (clj-http.cookies/cookie-store)]
      (infof "Starting download: %s" endpoint)
      (loop [counter (range max-retries)]
@@ -61,14 +61,19 @@
                  (recur (rest counter))) ;try again
              (errorf "%s: %d, body: %s" endpoint status body))))))) ;give up
 
-(defn- download [num-pages] 
+(defn- with-thread-pool [body]
   (let [pool (Executors/newFixedThreadPool worker-pool-size)]
-    (let [endpoints (reverse 
-                     (map #(format page-url %) 
-                          (range start-page (+ start-page num-pages))))
-          tasks (map #(create-page-task %) endpoints)]
-      (.invokeAll pool tasks)
-      (.shutdown pool))))
+    (try
+      (body pool)
+      (finally (.shutdown pool)))))
+
+(defn- download [num-pages]
+  (with-thread-pool
+    (fn [pool]
+      (let [page-numbers (range start-page (+ start-page num-pages))
+            endpoints (map #(format page-url %) page-numbers)
+            tasks (map #(create-download-task %) endpoints)]
+        (.invokeAll pool (reverse tasks))))))
 
 (defn- count-docs []
   (if num-docs
