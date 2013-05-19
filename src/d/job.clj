@@ -34,7 +34,6 @@
         docs (map #(util/convert-doc %) (:result parsed-json))
         doc-lines (map #(json/generate-string %) docs)]
     (write (apply str (map #(str % "\n") doc-lines)))
-    (infof "written %s" (count docs))
     (count docs)))
 
 (defn- create-page-task [endpoint]
@@ -49,7 +48,7 @@
              body (:body response)]
          (if (= 200 status)
            (let [dumped (dump-to-file body)]
-             (infof "Done: %s (%s docs)" endpoint))
+             (infof "Done: %s (%s docs)" endpoint dumped))
            (if (and (= 408 status) counter) ;should retry?
              (do (debugf "Retrying %s [%s]" endpoint (first counter))
                  (recur (rest counter))) ;try again
@@ -69,7 +68,7 @@
     num-docs
     (let [session (clj-http.cookies/cookie-store)]
       (infof "Starting count query at: %s" count-endpoint)
-      (loop [counter (range)]
+      (loop [counter (range max-retries)]
         (let [response (client/get count-endpoint 
                                    {:cookie-store session
                                     :throw-exceptions false})
@@ -77,16 +76,18 @@
           (if (= 200 status)
             (let [json (json/parse-string (:body response) true)]
               (Long/valueOf (:info json)))
-            (if (= 408 status)
-              (do 
-                (debugf "Retrying count query: %s" 
-                     (first counter)) (recur (rest counter)))
-              (do (errorf "Error: %s" status) 0))))))))
-  
+            (do (if (= 15 (mod (first counter) 16))
+                  (infof "Retrying count query: %s" 
+                         (first counter)))
+                (if (and (= 408 status) counter)
+                  (recur (rest counter))
+                  (do (errorf "Error: %s" status) 0)))))))))
+
 (defn- calculate-num-pages []
-  (let [num-docs (count-docs)]
+  (let [num-docs (count-docs)
+        dec+ (fnil dec 1)]
     (infof "Docs: %s" num-docs)
-    (inc (quot (dec num-docs) page-size))))
+    (inc (quot (dec+ num-docs) page-size))))
 
 (defn -main [& args]
   (Locale/setDefault (Locale/US))

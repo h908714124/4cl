@@ -40,6 +40,6 @@ appender("TEE_APPENDER", FileAppender) {
 }
 
 root(INFO, ["CONSOLE_APPENDER", "TEE_APPENDER"])
-logger("d", DEBUG, [])
+logger("d", INFO, [])
 logger("log.to", INFO, [], false)
 logger("log.to.file", INFO, ["STREAM2ES_APPENDER"])
