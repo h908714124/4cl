@@ -14,10 +14,10 @@
 (def file-out (LoggerFactory/getLogger "log.to.file"))
 (defn- write [str] (.info file-out str))
 
-(defn- int-prop [k] (let [i (util/prop k)] (if i (Integer/valueOf i))))
+(defn- int-prop [k] (if-let [i (util/prop k)] (Integer/valueOf i)))
 
-(def num-docs (int-prop :num-docs))
-(def start-page (let [i (int-prop :start-page)] (if i i 0)))
+(def num-docs (if-let [i (int-prop :num-docs)] i))
+(def start-page (if-let [i (int-prop :start-page)] i 0))
 (def page-url (util/prop :page-url))
 (def count-endpoint (util/prop :count-endpoint))
 (def page-size (int-prop :page-size))
@@ -65,7 +65,8 @@
 
 (defn- count-docs []
   (if num-docs
-    num-docs ;override
+    (do (infof "Using num-docs override: %s" num-docs)
+        num-docs)
     (let [session (clj-http.cookies/cookie-store)]
       (infof "Starting count query at: %s" count-endpoint)
       (loop [counter (range max-retries)]
