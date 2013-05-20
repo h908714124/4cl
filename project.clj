@@ -15,7 +15,7 @@
             :url "http://no.ne"}
   :resource-paths ["etc" "resources"]
   :dependencies [[cheshire "5.1.1"]
-                 [org.clojure/java.jdbc "0.3.0-alpha4"]
+                 [org.clojure/java.jdbc "0.3.0-SNAPSHOT"]
                  [mysql/mysql-connector-java "5.1.25"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [clj-http "0.7.1"]
