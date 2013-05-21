@@ -2,14 +2,16 @@
   (:gen-class)
   (:require [clojure.java.jdbc :as j]
             [clojure.tools.cli :refer [cli]]
-            [clojure.edn :as edn]))
+            [cheshire.core :as json]
+            [clojure.edn :as edn])
+  (:use [clojure.java.io :only (writer)]))
 
 (def db (edn/read-string (slurp "etc/db.clj")))
 
 (def cli-opts
   [["-i" "--insert" :default "insert into t (c) values ('zoo %s tar')"]
    ["-n" "--num-rows" "Insert num rows" :default 10]
-   ["-q" "--query" "Query" :default "select * from t limit 0, 10"]])
+   ["-q" "--query" "Query" :default "select * from t limit 0, 2000000"]])
 
 (defn- insert-test-data [db insert-sql num-rows]
   (j/db-transaction [db* db] 
@@ -29,5 +31,7 @@
                                   :return-keys true)
         db {:connection conn}]
     (insert-test-data db (:insert opts) (Integer/valueOf (:num-rows opts)))
-    (println (j/query db [stmt]))))
+    (with-open [out (writer "log/s2es.txt")]
+      (doseq [line (j/query db [stmt])]
+        (.write out (str (json/generate-string line) "\n"))))))
   
